@@ -108,19 +108,16 @@ def take_input(request):
         # Preprocess text and make predictions
         processed_text = preprocess_text(final_text)
         prediction = model.predict(processed_text)
-        
+        print(prediction)
         # Convert prediction to human-readable format
-        prediction_label = "Hate Speech" if prediction[0][0] > 0.5 else "Not Hate Speech"
-        prediction_probability = float(prediction[0][0])
-
+        
         messages.success(request, 'Input received successfully!')
         TextAudio.objects.create(user=user, text=final_text, audio_file=audio)
 
         return render(request, 'base/home.html', {
             'text': final_text, 
             'audio': audio, 
-            'prediction_label': prediction_label,
-            'prediction_probability': prediction_probability
+            
         })
 
     return render(request, 'base/home.html')
