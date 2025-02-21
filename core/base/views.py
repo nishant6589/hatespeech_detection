@@ -6,6 +6,35 @@ import speech_recognition as sr
 from pydub import AudioSegment
 from .models import TextAudio
 from django.conf import settings
+import tensorflow as tf
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+import numpy as np
+
+# Load the model
+model_path = os.path.join(settings.BASE_DIR, 'models', 'v1.keras')
+model = tf.keras.models.load_model(model_path)
+
+# Constants for text preprocessing
+MAX_SEQUENCE_LENGTH = 50  # Adjust this based on your model's requirements
+VOCAB_SIZE = 50000  # Adjust this based on your model's requirements
+
+# Initialize tokenizer
+tokenizer = Tokenizer(num_words=VOCAB_SIZE)
+# Fit the tokenizer with the same vocabulary used during training
+# Assuming you have the training data or the tokenizer saved
+# tokenizer.fit_on_texts(training_texts)
+
+def preprocess_text(text):
+    """Preprocess text to match the model's expected input format"""
+    # Convert to list if single string
+    if isinstance(text, str):
+        text = [text]
+    
+    # Tokenize and pad sequences
+    sequences = tokenizer.texts_to_sequences(text)
+    padded_sequences = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH, padding='post')
+    return np.array(padded_sequences)
 
 @login_required(login_url='/login/')
 def home(request):
@@ -74,10 +103,24 @@ def take_input(request):
 
         # Combine user text input (if any) with transcribed text
         final_text = text if text else transcribed_text
-        print(final_text)   
+        print(final_text)
+
+        # Preprocess text and make predictions
+        processed_text = preprocess_text(final_text)
+        prediction = model.predict(processed_text)
+        
+        # Convert prediction to human-readable format
+        prediction_label = "Hate Speech" if prediction[0][0] > 0.5 else "Not Hate Speech"
+        prediction_probability = float(prediction[0][0])
+
         messages.success(request, 'Input received successfully!')
         TextAudio.objects.create(user=user, text=final_text, audio_file=audio)
 
-        return render(request, 'base/home.html', {'text': final_text, 'audio': audio})
+        return render(request, 'base/home.html', {
+            'text': final_text, 
+            'audio': audio, 
+            'prediction_label': prediction_label,
+            'prediction_probability': prediction_probability
+        })
 
     return render(request, 'base/home.html')
