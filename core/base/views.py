@@ -10,6 +10,8 @@ import tensorflow as tf
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import numpy as np
+import re
+import string
 
 # Load the model
 model_path = os.path.join(settings.BASE_DIR, 'models', 'v1.keras')
@@ -19,21 +21,45 @@ model = tf.keras.models.load_model(model_path)
 MAX_SEQUENCE_LENGTH = 50  # Adjust this based on your model's requirements
 VOCAB_SIZE = 50000  # Adjust this based on your model's requirements
 
-# Initialize tokenizer
-tokenizer = Tokenizer(num_words=VOCAB_SIZE)
-# Fit the tokenizer with the same vocabulary used during training
-# Assuming you have the training data or the tokenizer saved
-# tokenizer.fit_on_texts(training_texts)
+# Load the tokenizer
+tokenizer_path = os.path.join(settings.BASE_DIR, 'models', 'tokenizer.json')
+with open(tokenizer_path, 'r') as f:
+    tokenizer_data = f.read()
+tokenizer = tf.keras.preprocessing.text.tokenizer_from_json(tokenizer_data)
+
+def remove_emoji(text):
+    emoji_pattern = re.compile("["
+                               u"\U0001F600-\U0001F64F"  # emoticons
+                               u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                               u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                               u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+                               u"\U00002702-\U000027B0"
+                               u"\U000024C2-\U0001F251"
+                               "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', text)
+
+def clean_text(text):
+    delete_dict = {sp_character: '' for sp_character in string.punctuation}
+    delete_dict[' '] = ' '
+    table = str.maketrans(delete_dict)
+    text1 = text.translate(table)
+    textArr = text1.split()
+    text2 = ' '.join([w for w in textArr if (not w.isdigit() and len(w) > 3)])
+    return text2.lower()
 
 def preprocess_text(text):
     """Preprocess text to match the model's expected input format"""
+    # Remove emojis and clean text
+    text = remove_emoji(text)
+    text = clean_text(text)
+    
     # Convert to list if single string
     if isinstance(text, str):
         text = [text]
     
     # Tokenize and pad sequences
     sequences = tokenizer.texts_to_sequences(text)
-    padded_sequences = pad_sequences(sequences, maxlen=MAX_SEQUENCE_LENGTH, padding='post')
+    padded_sequences = pad_sequences(sequences, padding='post', maxlen=MAX_SEQUENCE_LENGTH)
     return np.array(padded_sequences)
 
 @login_required(login_url='/login/')
@@ -110,14 +136,17 @@ def take_input(request):
         prediction = model.predict(processed_text)
         print(prediction)
         # Convert prediction to human-readable format
-        
+        prediction_label = "Hate Speech" if prediction[0][0] > 0.5 else "Not Hate Speech"
+        prediction_probability = float(prediction[0][0])
+
         messages.success(request, 'Input received successfully!')
         TextAudio.objects.create(user=user, text=final_text, audio_file=audio)
 
         return render(request, 'base/home.html', {
             'text': final_text, 
             'audio': audio, 
-            
+            'prediction_label': prediction_label,
+            'prediction_probability': prediction_probability
         })
 
     return render(request, 'base/home.html')
