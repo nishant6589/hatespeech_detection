@@ -12,9 +12,11 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import numpy as np
 import re
 import string
+import nltk
+nltk.download("stopwords")
 
 # Load the model
-model_path = os.path.join(settings.BASE_DIR, 'models', 'v1.keras')
+model_path = os.path.join(settings.BASE_DIR, 'models', 'v2.keras')
 model = tf.keras.models.load_model(model_path)
 
 # Constants for text preprocessing
@@ -22,7 +24,7 @@ MAX_SEQUENCE_LENGTH = 50  # Adjust this based on your model's requirements
 VOCAB_SIZE = 50000  # Adjust this based on your model's requirements
 
 # Load the tokenizer
-tokenizer_path = os.path.join(settings.BASE_DIR, 'models', 'tokenizer.json')
+tokenizer_path = os.path.join(settings.BASE_DIR, 'models', 'tokenizer_NewDataset.json')
 with open(tokenizer_path, 'r') as f:
     tokenizer_data = f.read()
 tokenizer = tf.keras.preprocessing.text.tokenizer_from_json(tokenizer_data)
@@ -45,7 +47,15 @@ def clean_text(text):
     text1 = text.translate(table)
     textArr = text1.split()
     text2 = ' '.join([w for w in textArr if (not w.isdigit() and len(w) > 3)])
-    return text2.lower()
+    cached_stopwords = set(stopwords.words('english'))
+    az = set([chr(k) for k in range(97,123)])
+    cached_stopwords.update(az)
+    text = text2.lower().split()
+    text = filter(lambda x:x not in cached_stopwords,text)
+    text = " ".join(text)
+    return text.lower()
+
+from nltk.corpus import stopwords
 
 def preprocess_text(text):
     """Preprocess text to match the model's expected input format"""

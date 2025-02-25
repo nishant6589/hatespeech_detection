@@ -1,0 +1,6 @@
+django
+tensorflow
+SpeechRecognition
+pydub
+pandas
+nltk
