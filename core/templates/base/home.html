@@ -2,47 +2,60 @@
 
 {% block start %}
 {% csrf_token %}
-<div class="container" style=" margin-top: 15px;">
-    <form action="/take_input/" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="col-6 mx-auto card p-4 shadow-lg " method="post" enctype="multipart/form-data">
-            {% if messages %}
-            <div class="alert alert-primary" role="alert">
-                {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
-                    {% endfor %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white text-center">
+                    <h2>Hate Speech Detection</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-center">Enter text or upload an audio file to detect hate speech.</p>
+                    <form action="/take_input/" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% if messages %}
+                        <div class="alert alert-primary" role="alert">
+                            {% for message in messages %}
+                            <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="mb-3">
+                            <label for="input_text" class="form-label">Enter the text here</label>
+                            <textarea class="form-control" name="input_text" id="input_text" rows="3"></textarea>
+                        </div>
+                        <hr>
+                        <h3 class="text-center">OR</h3>
+                        <hr>
+                        <div class="mb-3">
+                            <label for="formFile" class="form-label">Upload the sample voice file</label>
+                            <input class="form-control" name="input_voice" type="file" id="formFile" accept=".mp3,.wav,.aac,.m4a">
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" onclick="return validateFile()">Submit</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            {% endif %}
-            <label> Enter the text here </label>
-            <textarea class="form-control" name="input_text" rows="3"></textarea>
-            <hr>
-            <h3 style="text-align: center;"> OR </h3>
-            <hr>
-            <div class="mb-3">
-                <label for="formFile" class="form-label">Upload the sample voice file</label>
-                <input class="form-control" name = "input_voice" type="file" id="formFile" accept=".mp3,.wav,.aac,.m4a">
-            </div>
-
-            <button type="submit" class="btn btn-primary m-3" onclick="return validateFile()">Submit</button>
-
-            <script>
-                function validateFile() {
-                    const fileInput = document.getElementById('formFile');
-                    const file = fileInput.files[0];
-                    const maxSize = 5 * 1024 * 1024; // 5 MB
-
-                    if (file) {
-                        if (file.size > maxSize) {
-                            alert('File size exceeds 5 MB');
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            </script>
         </div>
-
-
-    </form>
+    </div>
 </div>
+
+
+<script>
+    function validateFile() {
+        const fileInput = document.getElementById('formFile');
+        const file = fileInput.files[0];
+        const maxSize = 5 * 1024 * 1024; // 5 MB
+
+        if (file) {
+            if (file.size > maxSize) {
+                alert('File size exceeds 5 MB');
+                return false;
+            }
+        }
+        return true;
+    }
+</script>
 {% endblock %}
+

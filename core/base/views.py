@@ -12,6 +12,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import numpy as np
 import re
 import string
+import time  # Add this import
 
 # Load the model
 model_path = os.path.join(settings.BASE_DIR, 'models', 'v1.keras')
@@ -75,7 +76,7 @@ def convert_audio_to_text(audio_path):
 
     # Convert to .wav format if needed
     audio_extension = os.path.splitext(audio_path)[1].lower()
-    if audio_extension != ".wav":
+    if (audio_extension != ".wav"):
         converted_path = audio_path.replace(audio_extension, ".wav")
         audio = AudioSegment.from_file(audio_path, format=audio_extension[1:])
         audio.export(converted_path, format="wav")
@@ -108,7 +109,7 @@ def take_input(request):
         if audio:
             file_ext = os.path.splitext(audio.name)[1].lower()
             if file_ext not in ALLOWED_EXTENSIONS:
-                messages.error(request, 'Invalid audio format. Allowed formats: .mp3, .wav, .aac, .m4a')
+                messages.warning(request, 'Unsupported audio format')
                 return render(request, 'base/home.html')
 
             # Ensure the temp_audio directory exists
@@ -116,16 +117,13 @@ def take_input(request):
             os.makedirs(temp_audio_dir, exist_ok=True)
 
             # Save the audio file temporarily
-            audio_path = os.path.join(temp_audio_dir, audio.name)
-            with open(audio_path, 'wb+') as destination:
+            temp_audio_path = os.path.join(temp_audio_dir, audio.name)
+            with open(temp_audio_path, 'wb+') as destination:
                 for chunk in audio.chunks():
                     destination.write(chunk)
 
             # Convert audio to text
-            transcribed_text = convert_audio_to_text(audio_path)
-
-            # Clean up temporary file
-            os.remove(audio_path)
+            transcribed_text = convert_audio_to_text(temp_audio_path)
 
         # Combine user text input (if any) with transcribed text
         final_text = text if text else transcribed_text
@@ -133,20 +131,28 @@ def take_input(request):
 
         # Preprocess text and make predictions
         processed_text = preprocess_text(final_text)
+        
+        # Measure the time taken for prediction
+        start_time = time.time()
         prediction = model.predict(processed_text)
+        end_time = time.time()
+        time_taken = round(end_time - start_time, 2)
+        
         print(prediction)
         # Convert prediction to human-readable format
         prediction_label = "Hate Speech" if prediction[0][0] > 0.5 else "Not Hate Speech"
-        prediction_probability = float(prediction[0][0])
+        prediction_probability = round(float(prediction[0][0]) * 100, 2)
 
         messages.success(request, 'Input received successfully!')
         TextAudio.objects.create(user=user, text=final_text, audio_file=audio)
 
-        return render(request, 'base/home.html', {
-            'text': final_text, 
-            'audio': audio, 
-            'prediction_label': prediction_label,
-            'prediction_probability': prediction_probability
+        return render(request, 'base/results.html', {
+            'input_text': final_text, 
+            'result': prediction_label,
+            'probability': f"{prediction_probability}%",
+            'model': 'v1.keras',
+            'time_taken': f"{time_taken} seconds"  
         })
 
     return render(request, 'base/home.html')
+

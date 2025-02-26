@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from base.views import home, take_input
+from django.contrib.auth.decorators import login_required
 from account.views import loginPage, registerPage, logoutPage
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +26,5 @@ urlpatterns = [
     path('register/', registerPage, name='register'),   
     path('logout/', logoutPage, name='logout'),
     path('take_input/', take_input, name='take_input'),
+    
 ]
