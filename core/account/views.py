@@ -19,7 +19,7 @@ def loginPage(request):
         if user_obj:
             login(request, user_obj)
             messages.warning(request, "Login successful")
-            return  HttpResponseRedirect(request.path_info)
+            return  redirect('/')
         else:
             messages.warning(request, "Invalid Credentials")
             return render(request, 'account/login.html')

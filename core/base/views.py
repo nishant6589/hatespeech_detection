@@ -15,15 +15,18 @@ import string
 import time  # Add this import
 
 # Load the model
-model_path = os.path.join(settings.BASE_DIR, 'models', 'v1.keras')
+model_path = os.path.join(settings.BASE_DIR, 'models', 'v3.keras')
 model = tf.keras.models.load_model(model_path)
+
+# Extract the model name from the model_path
+model_name = os.path.basename(model_path)
 
 # Constants for text preprocessing
 MAX_SEQUENCE_LENGTH = 50  # Adjust this based on your model's requirements
 VOCAB_SIZE = 50000  # Adjust this based on your model's requirements
 
 # Load the tokenizer
-tokenizer_path = os.path.join(settings.BASE_DIR, 'models', 'tokenizer.json')
+tokenizer_path = os.path.join(settings.BASE_DIR, 'models', 'tokenizer_MixedDataset.json')
 with open(tokenizer_path, 'r') as f:
     tokenizer_data = f.read()
 tokenizer = tf.keras.preprocessing.text.tokenizer_from_json(tokenizer_data)
@@ -140,7 +143,7 @@ def take_input(request):
         
         print(prediction)
         # Convert prediction to human-readable format
-        prediction_label = "Hate Speech" if prediction[0][0] > 0.5 else "Not Hate Speech"
+        prediction_label = "Harmful Content" if prediction[0][0] > 0.65 else "Safe-Content"
         prediction_probability = round(float(prediction[0][0]) * 100, 2)
 
         messages.success(request, 'Input received successfully!')
@@ -150,7 +153,7 @@ def take_input(request):
             'input_text': final_text, 
             'result': prediction_label,
             'probability': f"{prediction_probability}%",
-            'model': 'v1.keras',
+            'model': model_name,
             'time_taken': f"{time_taken} seconds"  
         })
 
